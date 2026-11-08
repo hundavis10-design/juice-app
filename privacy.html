@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JUICE Privacy Policy</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<a class="lang" href="zh-hk/privacy.html" lang="zh-HK">廣東話</a>
+<header class="top">
+<a class="brand" href="index.html">JUICE<span>.</span></a>
+<nav><a class="on" href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="support.html">Support</a></nav>
+</header>
+<h1>Privacy Policy</h1>
+<p class="muted">Effective November 8, 2026</p>
+
+<p>JUICE ("the app") is made by Hunter Davis, an independent developer ("I", "me"). This policy explains what the app uses, why, and where it goes. The short version: there is no JUICE account, no ads, no analytics or tracking tools, and almost everything stays on your iPhone.</p>
+
+<div class="card">
+<ul>
+<li>No JUICE accounts. No sign-up with me.</li>
+<li>No ads, and no third-party analytics, crash-reporting or tracking SDKs.</li>
+<li>I do not sell your data or share it for advertising. JUICE does not track you across other companies' apps or websites, so it never asks for tracking permission.</li>
+<li>JUICE has no database of its own about you. Your trips, cars, drives and settings are saved on your device.</li>
+</ul>
+</div>
+
+<h2>1. Location</h2>
+<p>JUICE uses your precise location in these ways:</p>
+<ul>
+<li><b>While using the app:</b> to show chargers near you and to start trips from where you are.</li>
+<li><b>During a trip you started:</b> if you allow "Always", JUICE keeps using location in the background only while that trip is running, so your next stop, arrival time and battery stay current on the Lock Screen and Dynamic Island (Live Activity), even while you navigate in another app. It stops when you reach your destination or end the trip.</li>
+<li><b>Drive log Auto-track (Pro, off by default):</b> if you turn on Auto-track in Garage → Drives, JUICE uses significant location changes and visits, together with Motion &amp; Fitness, to notice when a drive starts and ends, and uses GPS only during a drive. Drives are saved on your device.</li>
+</ul>
+<p>You can change location access at any time in iPhone Settings → Privacy &amp; Security → Location Services → JUICE.</p>
+
+<h2>2. Data providers that receive locations or search areas</h2>
+<p>To answer a search (for example, "chargers along this route" or "weather at this stop"), JUICE sends the needed coordinates, route area or place name directly from your phone to the provider below. These requests do not include your name, email, or any JUICE identifier. Like any internet request, the provider can see your device's IP address. Each provider handles requests under its own privacy policy.</p>
+<ul>
+<li>U.S. Department of Energy / National Renewable Energy Laboratory Alternative Fuels Station data (charger locations)</li>
+<li>Open Charge Map (charger locations, ratings and check-ins)</li>
+<li>OpenStreetMap / Overpass (chargers, amenities and roads)</li>
+<li>Apple Maps / MapKit (maps, places, routes, map snapshots and Look Around images)</li>
+<li>Open-Meteo (weather along your route)</li>
+<li>Hong Kong government open data (chargers, roads and weather in Hong Kong)</li>
+<li>Google Places (Pro only: live stall availability and places such as restaurants)</li>
+<li>SerpApi (Pro only: hotel prices near a stop)</li>
+<li>U.S. Energy Information Administration (gas price averages; JUICE only downloads public averages and sends no user data)</li>
+</ul>
+
+<h2>3. Motion &amp; Fitness</h2>
+<p>JUICE uses motion activity (driving or not) only for Drive log Auto-track, to start and stop logging drives without draining your battery. It is processed on your device and not sent anywhere.</p>
+
+<h2>4. Tesla (optional, Pro)</h2>
+<ul>
+<li>You sign in on Tesla's own website in a secure Apple sign-in window. JUICE never sees your Tesla password.</li>
+<li>To finish sign-in, Tesla returns a one-time code through a small callback page hosted on GitHub Pages, and that code is exchanged for access tokens through a small relay I run on Cloudflare Workers. The relay exists only to add JUICE's app secret so it is not stored inside the app. It forwards the request to Tesla and returns Tesla's answer to your phone. It does not store or log your code or tokens, and later token refreshes go straight from your phone to Tesla.</li>
+<li>Your Tesla tokens are stored in the iOS Keychain on your device.</li>
+<li>JUICE uses the Tesla Fleet API only while the app is open, to read your car's battery and charging state, location, odometer and navigation destination, and to send destinations to the car when you ask.</li>
+<li>You can unlink your Tesla at any time in Garage. You can also revoke JUICE's access in your Tesla account.</li>
+</ul>
+
+<h2>5. Drive log (Pro)</h2>
+<p>Drives, routes, odometer readings, battery levels and tags are saved on your device. Exports (CSV or PDF) are created only when you choose to share them, and go wherever you send them. JUICE does not access your Photos library.</p>
+
+<h2>6. Apple Intelligence</h2>
+<p>"Ask JUICE" chat and drive-tag suggestions use Apple's on-device Foundation Models. JUICE does not send your questions or drive details to any server. Suggested tags are applied only after you approve them.</p>
+
+<h2>7. iCloud</h2>
+<p>If you use iCloud sync (Plus or Pro), your garage cars, learned car models, saved places, favorite chargers, saved trips and settings sync through your own iCloud account. Apple stores and handles this data under Apple's privacy policy; I cannot see it.</p>
+
+<h2>8. Charger reviews</h2>
+<p>Reviews you write are saved on your device. The review form has a switch to also post the review to Open Charge Map. When that switch is on, your star rating, comment and the name you enter (or "JUICE driver" if you leave it blank) are posted publicly on Open Charge Map, where anyone can see them. Open Charge Map does not allow edits after posting. Turn the switch off to keep a review on your phone only.</p>
+
+<h2>9. Notifications and alarms</h2>
+<p>Notifications (for example, "charging done") and the optional leave-the-charger alarm are scheduled locally on your device. JUICE does not use a push server for them.</p>
+
+<h2>10. Purchases</h2>
+<ul>
+<li>JUICE Plus (one-time in-app purchase) and JUICE Pro (auto-renewing monthly subscription) are handled entirely by Apple through the App Store. I never see your card details. Apple tells the app only which plan you have.</li>
+<li><b>Sign up / Pay:</b> this opens a charging network's own website (such as ChargePoint, EVgo, Blink or EV Connect) inside the app. Anything you enter there goes to that network under its own privacy policy, not to me. If you choose, JUICE can pre-fill car details saved on your device (such as VIN, license plate and color). JUICE never saves or fills in card numbers or passwords.</li>
+</ul>
+
+<h2>11. Children</h2>
+<p>JUICE is not directed to children under 13, and I do not knowingly collect personal information from children.</p>
+
+<h2>12. Keeping and deleting your data</h2>
+<ul>
+<li>Deleting JUICE from your iPhone removes the data saved on that device.</li>
+<li>Unlink your Tesla in Garage to remove the Tesla tokens from your device.</li>
+<li>iCloud copies can be removed in iPhone Settings → [your name] → iCloud.</li>
+<li>Reviews already posted to Open Charge Map are controlled by Open Charge Map.</li>
+</ul>
+
+<h2>13. Your rights</h2>
+<p>Depending on where you live (for example, under the California Consumer Privacy Act or the EU/UK General Data Protection Regulation), you may have the right to know what personal information is processed about you, to access, correct or delete it, and to object to or limit its use. Because I do not hold your data on any server, most of these rights are met by the controls on your own device. For any request or question, email <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a> and I will respond within a reasonable time. You may also contact your local data protection authority.</p>
+
+<h2>14. Changes</h2>
+<p>If this policy changes, I will update this page and its effective date. Significant changes will also be noted in the app or its release notes.</p>
+
+<h2>15. Contact</h2>
+<p>Hunter Davis, <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a></p>
+
+<footer>JUICE by Hunter Davis · <a href="terms.html">Terms</a> · <a href="support.html">Support</a></footer>
+</main>
+</body>
+</html>
