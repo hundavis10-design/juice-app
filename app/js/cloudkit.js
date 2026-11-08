@@ -1,11 +1,11 @@
 // iCloud (CloudKit JS), kept apart from everything else. Off until an API token is set below.
-// Hunter: create the container iCloud.com.hunterdavis.juice in the Apple Developer portal, add record types
-// Drive and PlannedDrive (each with a String field "json" holding the full record JSON), make a web API token
-// for the production environment, and paste it into apiToken.
+// Container iCloud.com.hunterdavis.juice (made 11/8). Record types Drive and PlannedDrive, each with a String
+// field "json" holding the full record JSON, are deployed to Production. The web API token below is public by
+// design (CloudKit JS); Apple only accepts it from the allowed origin.
 
 export const CONFIG = {
   containerIdentifier: "iCloud.com.hunterdavis.juice",
-  apiToken: "",
+  apiToken: "f0dfc5444a56f64f3db9347b297cdf73722a60de2f392a5e598da7e69aac7dca",   // CloudKit Console → Production → Tokens & Keys "JUICE website" (only works from hundavis10-design.github.io)
   environment: "production",
 };
 
