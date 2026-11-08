@@ -110,7 +110,7 @@ export default {
   calFile: "Calendar file",
 
   // locked
-  locked: "{0} is part of JUICE Pro. Get Pro in the JUICE app on iPhone or Mac, then import your data here.",
+  locked: "{0} is part of JUICE Pro. Sign in with Apple ID at the top (same Apple ID as your JUICE app with Pro), or import your data.",
   featDrives: "Drive log",
   featTrends: "Battery trends",
   featTaxes: "Tax export",
@@ -232,7 +232,15 @@ export default {
   clearData: "Clear data in this browser",
   clearConfirm: "Delete everything JUICE saved in this browser?",
 
-  privacy: "Everything stays in this browser. Map © OpenStreetMap contributors. Routes by OSRM, places by Nominatim, chargers from Open Charge Map.",
+  privacy: "Everything stays in this browser, unless you sign in with Apple ID: then it syncs with your own private iCloud, which only you can read. Map © OpenStreetMap contributors. Routes by OSRM, places by Nominatim, chargers from Open Charge Map.",
   privacyLink: "Privacy",
   supportLink: "Support",
+  // 11/8 4:45pm Sign in with Apple ID
+  ckTitle: "Sign in with Apple ID to sync with the JUICE app",
+  ckHelp: "Use the same Apple ID as your iPhone or Mac. On the phone, sign in too: JUICE → Garage → ⚙︎ Settings → Sign in with Apple ID.",
+  ckSignedIn: "Signed in with Apple ID",
+  ckSyncing: "Syncing with your JUICE app…",
+  ckSynced: "Synced with your JUICE app · {0} drives · {1} trips · {2} planned drives",
+  ckError: "Couldn't sync with iCloud just now. It will try again.",
+  ckDataHint: "Signed in with Apple ID at the top? Then everything syncs with the app on its own. A file still works too.",
 };

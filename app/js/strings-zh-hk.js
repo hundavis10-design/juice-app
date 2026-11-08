@@ -107,7 +107,7 @@ export default {
   alarmOn: "{0}分鐘前響鬧鐘",
   calFile: "日曆檔案",
 
-  locked: "{0}係JUICE Pro功能。喺iPhone或者Mac嘅JUICE升級Pro，再將資料匯入呢度。",
+  locked: "{0}係JUICE Pro功能。喺上面用 Apple ID 登入（同你有Pro嘅JUICE用同一個 Apple ID），或者匯入你嘅資料。",
   featDrives: "行車紀錄",
   featTrends: "電池走勢",
   featTaxes: "報稅匯出",
@@ -225,7 +225,15 @@ export default {
   clearData: "清除呢個瀏覽器嘅資料",
   clearConfirm: "刪除JUICE喺呢個瀏覽器儲低嘅所有嘢？",
 
-  privacy: "所有資料都留喺呢個瀏覽器。地圖 © OpenStreetMap貢獻者。路線：OSRM；地點：Nominatim；充電站：Open Charge Map。",
+  privacy: "所有資料都留喺呢個瀏覽器，除非你用 Apple ID 登入：咁就會同你自己嘅私人 iCloud 同步，只有你睇到。地圖 © OpenStreetMap貢獻者。路線：OSRM；地點：Nominatim；充電站：Open Charge Map。",
   privacyLink: "私隱",
   supportLink: "支援",
+  // 11/8 4:45pm Sign in with Apple ID
+  ckTitle: "用 Apple ID 登入，同 iPhone 或者 Mac 嘅 JUICE 同步",
+  ckHelp: "用返你 iPhone 或者 Mac 嗰個 Apple ID。部電話都要登入：JUICE → 車房 → ⚙︎ 設定 → 用 Apple ID 登入。",
+  ckSignedIn: "已經用 Apple ID 登入",
+  ckSyncing: "同 iPhone 或者 Mac 嘅 JUICE 同步緊…",
+  ckSynced: "已經同步 · {0} 程車 · {1} 個行程 · {2} 個計劃",
+  ckError: "頭先同步唔到 iCloud，陣間會再試。",
+  ckDataHint: "喺上面用 Apple ID 登入咗？咁所有嘢都會自己同 iPhone 或者 Mac 嘅 JUICE 同步。用檔案都仲得。",
 };

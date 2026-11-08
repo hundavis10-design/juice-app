@@ -155,3 +155,14 @@ dl.kv dd { margin: 0; text-align: right; }
   .report table.sum th { background: #eee; }
   .report .muted { color: #444; font-size: 9pt; }
 }
+
+/* Sign in with Apple ID (iCloud sync with the app): top of the panel on every tab. */
+.ckbar { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, rgba(184,255,61,.14), rgba(255,61,128,.12)); border: 1px solid rgba(184,255,61,.45); border-radius: 16px; padding: 12px 14px; margin: 0 0 12px; }
+.ckbar.hide { display: none; }
+.ckbar .ck-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ckbar .ck-text strong { font-size: 16px; }
+.ckbar .ck-text span { font-size: 13px; color: var(--muted); }
+.ckbar .ck-btns { flex: none; }
+.ckbar.on { background: var(--card); border-color: var(--line); padding: 8px 12px; }
+.ckbar.on .ck-text strong { font-size: 14px; color: var(--lime); }
+@media (max-width: 560px) { .ckbar { flex-direction: column; align-items: stretch; } .ckbar .ck-btns { align-self: flex-start; } }

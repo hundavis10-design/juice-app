@@ -3,7 +3,7 @@ import { fmt, esc, uid, makeUnits, monthKey, KM_PER_MI, dayKey } from "./util.js
 import { cumulative, thin, samplePoints, alongRoute, planStops } from "./planner.js";
 import { geocode, route, chargersNear, pool, NetError } from "./net.js";
 import * as D from "./drives.js";
-import { load, save, clearAll, mergeImport, buildExport, tierAtLeast } from "./store.js";
+import { load, save as storeSave, clearAll, mergeImport, buildExport, tierAtLeast } from "./store.js";
 import { buildICS } from "./ics.js";
 import { lineChart, barChart } from "./charts.js";
 import * as CK from "./cloudkit.js";
@@ -12,6 +12,9 @@ import { PRESETS } from "./presets.js";
 export function start(S, lang) {
   const U = makeUnits(S);
   const st = load();
+  // Every change saves to this browser and (signed in with Apple ID) syncs to iCloud a few seconds later.
+  let cloud = { schedule() {}, syncNow() {} };
+  const save = (s, keys) => { storeSave(s, keys); if (!(keys && keys.length === 1 && keys[0] === "prefs")) cloud.schedule(); };
   const P = st.prefs;
   Object.assign(P, { startPct: P.startPct ?? 90, reserve: P.reserve ?? 15, chargeTo: P.chargeTo ?? 80, tab: P.tab || "plan" });
   if (!P.car) P.car = st.cars[0]?.id || "p-myl";
@@ -31,6 +34,10 @@ export function start(S, lang) {
     <div class="layout" id="layout">
       <div class="mapwrap"><div id="map" aria-label="${esc(S.mapLabel)}"></div></div>
       <section class="panel">
+        <div class="ckbar${CK.enabled() ? "" : " hide"}" id="ckBar">
+          <div class="ck-text"><strong id="ckTitle">${esc(S.ckTitle)}</strong><span id="ckLine">${esc(S.ckHelp)}</span></div>
+          <div class="ck-btns"><div id="apple-sign-in-button"></div><div id="apple-sign-out-button"></div></div>
+        </div>
         <nav class="tabs" id="tabs" role="tablist"></nav>
         <div id="content"></div>
         <footer class="foot"><p>${esc(S.privacy)}</p>
@@ -694,18 +701,13 @@ export function start(S, lang) {
         <p>${esc(S.importHelp)}</p>
         <label class="btn file">${esc(S.pickFile)}<input type="file" id="importFile" accept=".json,application/json" hidden></label>
         <div id="impMsg" class="msg"></div>
-        <div id="ckHost"></div>
-        ${CK.enabled() ? "" : `<p class="muted small">${esc(S.icloudSoon)}</p>`}</div>
+        <p class="muted small">${esc(CK.enabled() ? S.ckDataHint : S.icloudSoon)}</p></div>
       <div class="card"><h2>${esc(S.exportTitle)}</h2>
         <p>${esc(S.exportHelp)}</p>
         <button class="btn alt" data-act="export">${esc(S.exportBtn)}</button></div>
       <div class="card"><h2>${esc(S.inBrowser)}</h2>
         <p class="muted">${esc(t("counts", st.cars.length, st.drives.length, st.rules.length, st.trips.length, st.planned.length))}</p>
         <button class="btn danger" data-act="clear">${esc(S.clearData)}</button></div>`;
-    if (CK.enabled()) CK.mount($("ckHost"), {
-      onData: j => { try { const r = mergeImport(st, j); save(st); msg("impMsg", t("icloudLoaded", r.drives, r.planned)); } catch { msg("impMsg", S.icloudFail, true); } },
-      onError: () => msg("impMsg", S.icloudFail, true),
-    });
   }
   content.addEventListener("change", async e => {
     if (e.target.id !== "importFile") return;
@@ -733,4 +735,22 @@ export function start(S, lang) {
   });
 
   render();
+
+  // ---------- Sign in with Apple ID (iCloud sync with the app) ----------
+  const ckLine = (k, ...a) => { const el = $("ckLine"); if (el) el.textContent = t(k, ...a); };
+  cloud = CK.mount({
+    getState: () => st,
+    persist: () => storeSave(st),
+    onStatus: (s, e) => {
+      $("ckBar").classList.toggle("on", s === "signedIn" || s === "syncing");
+      if (s === "signedOut") { $("ckTitle").textContent = S.ckTitle; ckLine("ckHelp"); }
+      else if (s === "syncing") { $("ckTitle").textContent = S.ckSignedIn; ckLine("ckSyncing"); }
+      else if (s === "error") ckLine("ckError");
+    },
+    onSynced: (n, info) => {
+      $("ckTitle").textContent = S.ckSignedIn;
+      ckLine("ckSynced", info.drives, info.trips, info.planned);
+      if (n > 0) { renderTabs(); render(); }
+    },
+  });
 }
