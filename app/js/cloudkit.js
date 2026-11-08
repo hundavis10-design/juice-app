@@ -239,8 +239,8 @@ export function mount({ getState, persist, onSynced, onStatus }) {
         containers: [{
           containerIdentifier: CONFIG.containerIdentifier,
           apiTokenAuth: { apiToken: CONFIG.apiToken, persist: true,
-            signInButton: { id: "apple-sign-in-button", theme: "white" },
-            signOutButton: { id: "apple-sign-out-button", theme: "white-with-outline" } },
+            signInButton: { id: "apple-sign-in-button", theme: "black" },
+            signOutButton: { id: "apple-sign-out-button", theme: "black" } },
           environment: CONFIG.environment,
         }],
       });
