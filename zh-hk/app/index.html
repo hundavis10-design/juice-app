@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JUICE 網頁版</title>
+<meta name="description" content="規劃電動車自駕遊同沿路充電站，睇返你嘅行車紀錄同電池走勢，仲可以將車程分做公事或者私人，方便報稅。">
+<meta name="theme-color" content="#0D0A1C">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="../../app/app.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+<div id="app" data-lang-link='<a class="lang" href="../../app/" lang="en">English</a>'></div>
+<noscript><p style="padding:20px">JUICE 網頁版要喺瀏覽器設定開啟腳本先用得。</p></noscript>
+<script type="module">
+import { start } from "../../app/js/main.js";
+import S from "../../app/js/strings-zh-hk.js";
+start(S, "zh-HK");
+</script>
+</body>
+</html>
