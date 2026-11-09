@@ -209,7 +209,6 @@ export default {
   supportLink: "支援",
   // 11/8 4:45pm Sign in with Apple ID
   ckSyncing: "同 iPhone 或者 Mac 嘅 JUICE 同步緊…",
-  ckError: "頭先同步唔到 iCloud，陣間會再試。",
   // 11/9 app-like web + live Apple sign-in
   bannerHello: "計行程、睇車程，同你部 iPhone 一樣。",
   whereToPill: "去邊？",
@@ -233,11 +232,15 @@ export default {
   goHere: "去",
   tierFromPhone: "同你部 iPhone 一樣嘅計劃。",
   tierHelpSignIn: "登入之後就可以喺度用你嘅 JUICE Plus 或者 Pro。",
-  ckSyncedLive: "同你部 iPhone 即時同步 · {0} 程車 · {1} 個行程 · {2} 個地點",
   bannerSynced: "已經同你部 iPhone 同步 · {0} 程車 · {1} 個行程",
   placeHome: "屋企",
   placeWork: "公司",
   placeSchool: "學校",
   placeChurch: "教會",
-  icloudFull: "你嘅 iCloud 儲存空間滿咗，乜都同步唔到。喺 iPhone「設定 → 你個名 → iCloud」騰啲位出嚟。",
+  signOut: "登出",
+  deleteAcct: "刪除我嘅 JUICE 帳戶",
+  deleteAcctConfirm: "刪除你嘅 JUICE 帳戶？你嘅車程、行程同地點會喺 JUICE 伺服器刪除。你部 iPhone 會保留自己嗰份。",
+  signedInAs: "已經用 Apple 登入（{0}）",
+  acctSyncedLive: "同你部 iPhone 即時同步 · {0} 程車 · {1} 個行程 · {2} 個地點",
+  acctError: "頭先連唔到 JUICE，陣間會再試。",
 };

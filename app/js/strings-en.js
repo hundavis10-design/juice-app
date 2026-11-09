@@ -216,7 +216,6 @@ export default {
   supportLink: "Support",
   // 11/8 4:45pm Sign in with Apple ID
   ckSyncing: "Syncing with your JUICE app…",
-  ckError: "Couldn't sync with iCloud just now. It will try again.",
   // 11/9 app-like web + live Apple sign-in
   bannerHello: "Plan a trip, see your drives. Same as your iPhone.",
   whereToPill: "Where to?",
@@ -240,11 +239,15 @@ export default {
   goHere: "Go",
   tierFromPhone: "Same plan as your iPhone.",
   tierHelpSignIn: "Sign in to use your JUICE Plus or Pro here.",
-  ckSyncedLive: "Live with your iPhone · {0} drives · {1} trips · {2} places",
   bannerSynced: "Synced with your iPhone · {0} drives · {1} trips",
   placeHome: "Home",
   placeWork: "Work",
   placeSchool: "School",
   placeChurch: "Church",
-  icloudFull: "Your iCloud storage is full, so nothing can sync. Free up space on your iPhone: Settings → your name → iCloud.",
+  signOut: "Sign out",
+  deleteAcct: "Delete my JUICE account",
+  deleteAcctConfirm: "Delete your JUICE account? Your drives, trips and places are removed from JUICE’s server. Your iPhone keeps its own copy.",
+  signedInAs: "Signed in with Apple as {0}",
+  acctSyncedLive: "Live with your iPhone · {0} drives · {1} trips · {2} places",
+  acctError: "Couldn't reach JUICE just now. It will try again.",
 };

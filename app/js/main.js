@@ -6,7 +6,7 @@ import * as D from "./drives.js";
 import { load, save as storeSave, tierAtLeast } from "./store.js";
 import { buildICS } from "./ics.js";
 import { lineChart, barChart } from "./charts.js";
-import * as CK from "./cloudkit.js";
+import * as Account from "./account.js";
 import { PRESETS } from "./presets.js";
 
 export function start(S, lang) {
@@ -24,7 +24,7 @@ export function start(S, lang) {
   const pct = v => `${Math.round(v)}%`;
   let contentTarget = null;            // the Drives screen draws its sub-pages under its switch
   const out = () => contentTarget || content;
-  let signedIn = false;                // signed in with Apple (iCloud) on this page
+  let signedIn = false;                // signed in with Apple (JUICE account, not iCloud) on this page
 
   // ---------- skeleton ----------
   // Hunter 11/9 8:07am: "look and feel like the app". Same layout as the iPhone app: the map fills the screen, the
@@ -43,7 +43,10 @@ export function start(S, lang) {
         <div class="btext"><strong>JUICE</strong><span id="bannerLine">${esc(S.bannerHello)}</span></div>
       </div>
       <div class="topright">${root.dataset.langLink || ""}
-        <div class="acct${CK.enabled() ? "" : " hide"}" id="acct"><div id="apple-sign-in-button"></div><div id="apple-sign-out-button"></div></div>
+        <div class="acct" id="acct">
+          <button class="siwa" id="siwaTop" data-act="signin"><span class="apple-mark"></span>${esc(S.signInBtn)}</button>
+          <button class="me" id="meBtn" aria-label="${esc(S.signedInApple)}"><span class="apple-mark"></span></button>
+        </div>
       </div>
     </header>
     <div class="dock" id="dock">
@@ -160,7 +163,9 @@ export function start(S, lang) {
   }
   content.addEventListener("click", e => {
     const g = e.target.closest("[data-goto]"); if (g) go(g.dataset.goto);
-    if (e.target.closest('[data-act="signin"]')) $("apple-sign-in-button").querySelector("a, div, button")?.click();
+    if (e.target.closest('[data-act="signin"]')) cloud.signIn?.();
+    if (e.target.closest('[data-act="signout"]')) { cloud.signOut?.(); render(); }
+    if (e.target.closest('[data-act="delacct"]') && confirm(S.deleteAcctConfirm)) cloud.deleteAccount?.().then(() => render());
   });
 
   function download(name, text, type) {
@@ -761,8 +766,9 @@ export function start(S, lang) {
     const cars = st.cars || [];
     const places = st.places || [], favs = st.favorites || [];
     content.innerHTML = `
-      ${signedIn ? `<div class="card account on"><div class="apple-glyph"></div><div><h3>${esc(S.signedInApple)}</h3>
-          <p class="muted" id="garageSync">${esc(syncLine())}</p></div></div>`
+      ${signedIn ? `<div class="card account on"><div class="apple-glyph"></div><div style="flex:1"><h3>${esc(cloud.name?.() ? t("signedInAs", cloud.name()) : S.signedInApple)}</h3>
+          <p class="muted" id="garageSync">${esc(syncLine())}</p>
+          <div class="row"><button class="link" data-act="signout">${esc(S.signOut)}</button><button class="link danger" data-act="delacct">${esc(S.deleteAcct)}</button></div></div></div>`
         : signInCard(S.garageSignIn)}
       <div class="card"><h3>${esc(S.yourCars)}</h3>
         ${cars.length ? cars.map(c => `<div class="carrow"><div class="carico">🚗</div><div><b>${esc(c.name)}</b>
@@ -779,7 +785,7 @@ export function start(S, lang) {
       <div class="card"><h3>${esc(t("planLine", tierName()))}</h3><p class="muted">${esc(signedIn ? S.tierFromPhone : S.tierHelpSignIn)}</p></div>`;
   }
   let lastInfo = null;
-  const syncLine = () => lastInfo ? t("ckSyncedLive", lastInfo.drives, lastInfo.trips, (st.places || []).length) : S.ckSyncing;
+  const syncLine = () => lastInfo ? t("acctSyncedLive", lastInfo.drives, lastInfo.trips, (st.places || []).length) : S.ckSyncing;
   content.addEventListener("click", e => {
     if (P.tab !== "garage") return;
     const b = e.target.closest('[data-act="goplace"]'); if (!b || !b.dataset.lat) return;
@@ -789,17 +795,21 @@ export function start(S, lang) {
 
   render();
 
-  // ---------- Sign in with Apple ID: the same iCloud account as the app, live ----------
+  // ---------- Sign in with Apple: the same JUICE account as the app (api.juiceev.app), live ----------
+  $("meBtn").addEventListener("click", () => go("garage"));
   const line = text => { $("bannerLine").textContent = text; };
-  cloud = CK.mount({
+  cloud = Account.mount({
+    lang,
     getState: () => st,
     persist: () => storeSave(st),
-    onStatus: (s, e) => {
+    onStatus: (s) => {
+      const was = signedIn;
       signedIn = s === "signedIn" || s === "syncing";
       document.body.classList.toggle("signedin", signedIn);
-      if (s === "signedOut") { line(S.bannerHello); if (P.tab === "garage" || P.tab === "drives") render(); }
+      if (s === "signedOut") { line(S.bannerHello); if (was || P.tab === "garage" || P.tab === "drives") render(); }
       else if (s === "syncing") line(S.ckSyncing);
-      else if (s === "error") line(e && (e.ckErrorCode === "QUOTA_EXCEEDED" || e.serverErrorCode === "QUOTA_EXCEEDED") ? S.icloudFull : S.ckError);
+      else if (s === "error") line(S.acctError);
+      if (signedIn && !was && (P.tab === "garage" || P.tab === "drives")) render();
     },
     onSynced: (n, info) => {
       lastInfo = info;
