@@ -7,7 +7,7 @@ import zh from "../app/js/strings-zh-hk.js";
 import { readFileSync, existsSync } from "node:fs";
 
 // Brand names and units allowed inside Cantonese text. Longest first.
-const ALLOW_PHRASES = ["Apple Intelligence", "Open Charge Map", "OpenStreetMap", "Apple ID", "JUICE", "Tesla", "iCloud",
+const ALLOW_PHRASES = ["Apple Intelligence", "Open Charge Map", "OpenStreetMap", "Apple ID", "Apple", "JUICE", "Tesla", "iCloud",
   "iPhone", "Mac", "Google", "Outlook", "Nominatim", "OSRM", "Plus", "Pro", "CSV", "kWh", "kW", "km", "HK$", "°C"];
 const CJK = /[　-〿㐀-鿿豈-﫿＀-￯]/;
 

@@ -4,7 +4,7 @@
 // Records (production schema: types Drive and PlannedDrive, each a recordName + String field "json"):
 //   Drive/<id>          one drive, full JSON (tags and notes included)
 //   PlannedDrive/<id>   one drive saved to a day
-//   PlannedDrive/juice-trips, juice-rules, juice-cars   "bundles": every item plus ids deleted anywhere, so two sides
+//   PlannedDrive/juice-trips, juice-rules, juice-cars, juice-places   "bundles": every item plus ids deleted anywhere, so two sides
 //                       adding at once both keep theirs. juice-cars also carries the plan (tier) from the app.
 // Same rules as the app (Juice/CloudDrives.swift): pull, merge (newest edit wins, deletes stick), push what changed.
 // The web API token is public by design; Apple only accepts it from the allowed origin (hundavis10-design.github.io).
@@ -113,7 +113,14 @@ export function applyRemote(st, records, sync, confirmed) {
   if (cars) {
     if (Array.isArray(cars.cars) && cars.cars.length) st.cars = cars.cars;
     if (["free", "plus", "pro"].includes(cars.tier)) st.meta.tier = cars.tier;
+    if (cars.units === "km" || cars.units === "mi") st.meta.units = cars.units;
     st.meta.fromICloud = true;
+  }
+  // Saved places (Home, Work…) and favorite chargers: the app owns them; the site shows them on the map and Garage.
+  const pl = r.bundles["juice-places"];
+  if (pl) {
+    if (Array.isArray(pl.places)) st.places = pl.places;
+    if (Array.isArray(pl.favorites)) st.favorites = pl.favorites;
   }
   for (const g of gone) delete sync.keys[g];
   return n;

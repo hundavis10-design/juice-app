@@ -1,7 +1,7 @@
 // Browser storage (localStorage, keys start with "juice.") plus import/export in the app's juice-export format.
 
-const KEYS = ["cars", "drives", "deletedDrives", "rules", "trips", "planned", "meta", "prefs"];
-const DEFAULTS = () => ({ cars: [], drives: [], deletedDrives: [], rules: [], trips: [], planned: [], meta: { tier: "free" }, prefs: {} });
+const KEYS = ["cars", "drives", "deletedDrives", "rules", "trips", "planned", "places", "favorites", "meta", "prefs"];
+const DEFAULTS = () => ({ cars: [], drives: [], deletedDrives: [], rules: [], trips: [], planned: [], places: [], favorites: [], meta: { tier: "free" }, prefs: {} });
 
 export function load(storage = globalThis.localStorage) {
   const st = DEFAULTS();

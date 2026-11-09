@@ -3,7 +3,7 @@ import { fmt, esc, uid, makeUnits, monthKey, KM_PER_MI, dayKey } from "./util.js
 import { cumulative, thin, samplePoints, alongRoute, planStops } from "./planner.js";
 import { geocode, route, chargersNear, pool, NetError } from "./net.js";
 import * as D from "./drives.js";
-import { load, save as storeSave, clearAll, mergeImport, buildExport, tierAtLeast } from "./store.js";
+import { load, save as storeSave, tierAtLeast } from "./store.js";
 import { buildICS } from "./ics.js";
 import { lineChart, barChart } from "./charts.js";
 import * as CK from "./cloudkit.js";
@@ -22,75 +22,145 @@ export function start(S, lang) {
   const t = (k, ...a) => fmt(S[k] ?? k, ...a);
   const purposeWord = p => p === "business" ? S.business : p === "personal" ? S.personal : S.untagged;
   const pct = v => `${Math.round(v)}%`;
+  let contentTarget = null;            // the Drives screen draws its sub-pages under its switch
+  const out = () => contentTarget || content;
+  let signedIn = false;                // signed in with Apple (iCloud) on this page
 
   // ---------- skeleton ----------
+  // Hunter 11/9 8:07am: "look and feel like the app". Same layout as the iPhone app: the map fills the screen, the
+  // JUICE banner sits on top (with the Apple sign-in), "Where to?" floats at the bottom, and the app's tabs (Map,
+  // Trip, Drives, Garage) open their screens as a rounded sheet over the map (a side panel on a wide screen).
+  if (P.tab === "plan") P.tab = "trip";
+  if (P.tab === "trends" || P.tab === "taxes") { P.dsub = P.tab; P.tab = "drives"; }
+  if (P.tab === "data") P.tab = "garage";
+  if (!["map", "trip", "drives", "garage"].includes(P.tab)) P.tab = "map";
   const root = document.getElementById("app");
   root.innerHTML = `
-    <header class="bar">
-      <a class="brand" href="${esc(S._homeHref)}">JUICE<span>.</span></a>
-      <h1>${esc(S.appTitle)}</h1>
-      <div class="bar-right">${root.dataset.langLink || ""}</div>
+    <div id="map" aria-label="${esc(S.mapLabel)}"></div>
+    <header class="top">
+      <div class="banner" id="banner">
+        <div class="face" aria-hidden="true"><i></i><i></i><b></b></div>
+        <div class="btext"><strong>JUICE</strong><span id="bannerLine">${esc(S.bannerHello)}</span></div>
+      </div>
+      <div class="topright">${root.dataset.langLink || ""}
+        <div class="acct${CK.enabled() ? "" : " hide"}" id="acct"><div id="apple-sign-in-button"></div><div id="apple-sign-out-button"></div></div>
+      </div>
     </header>
-    <div class="layout" id="layout">
-      <div class="mapwrap"><div id="map" aria-label="${esc(S.mapLabel)}"></div></div>
-      <section class="panel">
-        <div class="ckbar${CK.enabled() ? "" : " hide"}" id="ckBar">
-          <div class="ck-text"><strong id="ckTitle">${esc(S.ckTitle)}</strong><span id="ckLine">${esc(S.ckHelp)}</span></div>
-          <div class="ck-btns"><div id="apple-sign-in-button"></div><div id="apple-sign-out-button"></div></div>
-        </div>
-        <nav class="tabs" id="tabs" role="tablist"></nav>
-        <div id="content"></div>
-        <footer class="foot"><p>${esc(S.privacy)}</p>
-          <p><a href="${esc(S._privacyHref)}">${esc(S.privacyLink)}</a> · <a href="${esc(S._supportHref)}">${esc(S.supportLink)}</a></p></footer>
-      </section>
+    <div class="dock" id="dock">
+      <button class="where" data-goto="trip" data-focus="to"><span class="flag">⚑</span><span>${esc(S.whereToPill)}</span></button>
     </div>
+    <section class="sheet" id="sheet" aria-modal="false">
+      <div class="grab" id="grab"></div>
+      <div class="sheethead"><h2 id="sheetTitle"></h2><button class="close" id="sheetClose" aria-label="${esc(S.close)}">✕</button></div>
+      <div id="content"></div>
+      <footer class="foot"><p>${esc(S.privacy)}</p>
+        <p><a href="${esc(S._privacyHref)}">${esc(S.privacyLink)}</a> · <a href="${esc(S._supportHref)}">${esc(S.supportLink)}</a></p></footer>
+    </section>
+    <nav class="tabbar" id="tabs" role="tablist"></nav>
     <div id="print-root"></div>`;
   const $ = id => document.getElementById(id);
   const content = $("content");
 
-  // ---------- map ----------
-  const map = L.map("map", { zoomControl: true, worldCopyJump: true }).setView(S._mapCenter, S._mapZoom);
+  // ---------- map (dark, like the app) ----------
+  const map = L.map("map", { zoomControl: false, worldCopyJump: true }).setView(S._mapCenter, S._mapZoom);
   map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ${esc(S.osmContrib)}`,
   }).addTo(map);
-  const layers = { route: L.layerGroup().addTo(map), chargers: L.layerGroup().addTo(map), stops: L.layerGroup().addTo(map), drive: L.layerGroup().addTo(map) };
+  L.control.zoom({ position: "topright" }).addTo(map);
+  const layers = { route: L.layerGroup().addTo(map), chargers: L.layerGroup().addTo(map), stops: L.layerGroup().addTo(map), drive: L.layerGroup().addTo(map), places: L.layerGroup().addTo(map) };
   const clearMap = (...ks) => ks.forEach(k => layers[k].clearLayers());
-  const fixMap = () => setTimeout(() => map.invalidateSize(), 50);
+  const fixMap = () => setTimeout(() => map.invalidateSize(), 60);
   window.addEventListener("resize", fixMap);
 
-  // ---------- tabs ----------
-  const TABS = [
-    { id: "plan", label: S.tabPlan },
-    { id: "drives", label: S.tabDrives, pro: true, feat: S.featDrives },
-    { id: "trends", label: S.tabTrends, pro: true, feat: S.featTrends },
-    { id: "taxes", label: S.tabTaxes, pro: true, feat: S.featTaxes },
-    { id: "data", label: S.tabData },
-  ];
-  function renderTabs() {
-    const pro = tierAtLeast(st, "pro");
-    $("tabs").innerHTML = TABS.map(x => `<button role="tab" data-tab="${x.id}" class="${P.tab === x.id ? "on" : ""}" aria-selected="${P.tab === x.id}">${esc(x.label)}${x.pro && !pro ? ` <span class="badge">Pro</span>` : ""}</button>`).join("");
+  /** Saved places and favorite chargers from the iPhone (iCloud), on the map like in the app. */
+  function drawPlaces() {
+    clearMap("places");
+    for (const p of st.places || []) {
+      const lat = p.item?.lat ?? p.lat, lon = p.item?.lon ?? p.lon;
+      if (lat == null || lon == null) continue;
+      L.marker([lat, lon], { icon: L.divIcon({ className: "pin-place", html: `<span>${esc(placeIcon(p.kind))}</span>`, iconSize: [30, 30] }) })
+        .bindPopup(`<b>${esc(placeName(p))}</b>${p.item?.subtitle ? "<br>" + esc(p.item.subtitle) : ""}`).addTo(layers.places);
+    }
+    for (const c of st.favorites || []) {
+      L.marker([c.lat, c.lon], { icon: L.divIcon({ className: "pin-fav", html: "<span>★</span>", iconSize: [26, 26] }) })
+        .bindPopup(`<b>${esc(c.name)}</b><br>${esc(t("chargerMeta", c.network || S.unknownNetwork, Math.round(c.maxKw || 0)))}`).addTo(layers.places);
+    }
   }
-  $("tabs").addEventListener("click", e => {
-    const b = e.target.closest("[data-tab]"); if (!b) return;
-    P.tab = b.dataset.tab; savePrefs(); render();
-  });
+  const placeIcon = k => ({ home: "⌂", work: "▣", school: "✎", church: "✝" })[k] || "★";
+  const placeName = p => p.name || ({ home: S.placeHome, work: S.placeWork, school: S.placeSchool, church: S.placeChurch })[p.kind] || p.item?.title || "";
 
+  // ---------- tabs (the app's tab bar) ----------
+  const TABS = [
+    { id: "map", label: S.tabMap, icon: "map" },
+    { id: "trip", label: S.tabTrip, icon: "trip" },
+    { id: "drives", label: S.tabDrives, icon: "drives", pro: true },
+    { id: "garage", label: S.tabGarage, icon: "garage" },
+  ];
+  const ICONS = {
+    map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14"/>',
+    trip: '<path d="M12 2l10 10-10 10L2 12z M9 13v-2h5l-2-2 M14 11l-2 2"/>',
+    drives: '<path d="M4 20L9 4 M20 20L15 4 M12 6v2 M12 11v2 M12 16v2"/>',
+    garage: '<path d="M3 17h18v-4l-2-5H5l-2 5z M7 17v2 M17 17v2 M6 13h3 M15 13h3"/>',
+  };
+  function renderTabs() {
+    $("tabs").innerHTML = TABS.map(x => `<button role="tab" data-tab="${x.id}" class="${P.tab === x.id ? "on" : ""}" aria-selected="${P.tab === x.id}">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[x.icon]}</svg><span>${esc(x.label)}</span></button>`).join("");
+  }
+  function go(tab, focus) {
+    P.tab = tab; savePrefs(); render();
+    if (focus) setTimeout(() => content.querySelector(`[data-place="${focus}"]`)?.focus(), 60);
+  }
+  $("tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) go(b.dataset.tab); });
+  $("sheetClose").addEventListener("click", () => go("map"));
+  $("dock").addEventListener("click", e => { const b = e.target.closest("[data-goto]"); if (b) go(b.dataset.goto, b.dataset.focus); });
+  // Swipe the sheet's handle down (phone) or press Escape to get back to the map.
+  let dragY = null;
+  $("grab").addEventListener("pointerdown", e => { dragY = e.clientY; });
+  window.addEventListener("pointerup", e => { if (dragY != null && e.clientY - dragY > 60) go("map"); dragY = null; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && P.tab !== "map" && !e.target.closest("input,select,textarea")) go("map"); });
+
+  const SUBS = [{ id: "drives", label: S.subDrives }, { id: "trends", label: S.tabTrends }, { id: "taxes", label: S.tabTaxes }];
   function render() {
     renderTabs();
-    const tab = TABS.find(x => x.id === P.tab) || TABS[0];
-    $("layout").classList.toggle("wide", ["drives", "trends", "taxes"].includes(tab.id));
-    if (tab.id !== "drives") clearMap("drive");
-    if (tab.pro && !tierAtLeast(st, "pro")) { content.innerHTML = locked(tab.feat); fixMap(); return; }
-    ({ plan: renderPlan, drives: renderDrives, trends: renderTrends, taxes: renderTaxes, data: renderData })[tab.id]();
+    const tab = P.tab;
+    document.body.dataset.tab = tab;
+    $("sheet").classList.toggle("open", tab !== "map");
+    $("dock").classList.toggle("hide", tab !== "map");
+    $("sheetTitle").textContent = ({ trip: S.tabTrip, drives: S.tabDrives, garage: S.tabGarage })[tab] || "";
+    if (tab !== "drives") clearMap("drive");
+    drawPlaces();
+    if (tab === "map") { fixMap(); return; }
+    if (tab === "trip") renderPlan();
+    else if (tab === "garage") renderGarage();
+    else if (tab === "drives") {
+      if (!signedIn && !st.drives.length) { content.innerHTML = signInCard(S.drivesSignIn); fixMap(); return; }
+      if (!tierAtLeast(st, "pro")) { content.innerHTML = locked(S.featDrives); fixMap(); return; }
+      const sub = SUBS.some(x => x.id === P.dsub) ? P.dsub : "drives";
+      content.innerHTML = `<div class="seg wide" id="dsub">${SUBS.map(x => `<button data-sub="${x.id}" class="${sub === x.id ? "on" : ""}">${esc(x.label)}</button>`).join("")}</div><div id="dpane"></div>`;
+      const inner = content; const pane = $("dpane");
+      // The drive screens write into #content; point them at the pane under the switch.
+      contentTarget = pane;
+      ({ drives: renderDrives, trends: renderTrends, taxes: renderTaxes })[sub]();
+      contentTarget = null;
+      void inner;
+    }
     fixMap();
   }
+  content.addEventListener("click", e => {
+    const b = e.target.closest("[data-sub]"); if (b) { P.dsub = b.dataset.sub; savePrefs(); render(); }
+  });
 
+  function signInCard(text) {
+    return `<div class="card signin"><div class="apple-glyph"></div><h3>${esc(S.signInTitle)}</h3><p>${esc(text)}</p>
+      <button class="btn apple" data-act="signin">${esc(S.signInBtn)}</button></div>`;
+  }
   function locked(feat) {
-    return `<div class="card lock"><p>${esc(t("locked", feat))}</p><button class="btn" data-goto="data">${esc(S.importNow)}</button></div>`;
+    return `<div class="card lock"><span class="badge">Pro</span><p>${esc(t("lockedPro", feat))}</p></div>`;
   }
   content.addEventListener("click", e => {
-    const g = e.target.closest("[data-goto]"); if (g) { P.tab = g.dataset.goto; savePrefs(); render(); }
+    const g = e.target.closest("[data-goto]"); if (g) go(g.dataset.goto);
+    if (e.target.closest('[data-act="signin"]')) $("apple-sign-in-button").querySelector("a, div, button")?.click();
   });
 
   function download(name, text, type) {
@@ -402,7 +472,7 @@ export function start(S, lang) {
   }
 
   content.addEventListener("click", async e => {
-    if (P.tab !== "plan") return;
+    if (P.tab !== "trip") return;
     const b = e.target.closest("[data-act]"); if (!b) return;
     const act = b.dataset.act;
     if (act === "plan") doPlan();
@@ -451,11 +521,11 @@ export function start(S, lang) {
   }
 
   function renderDrives() {
-    if (!st.drives.length) { content.innerHTML = `<div class="card"><p>${esc(S.noDrives)}</p><button class="btn" data-goto="data">${esc(S.importNow)}</button></div>${rulesHTML()}`; return; }
+    if (!st.drives.length) { out().innerHTML = `<div class="card"><p>${esc(signedIn ? S.noDrivesYet : S.drivesSignIn)}</p></div>${rulesHTML()}`; return; }
     const list = D.filterDrives(st.drives, F);
     const waiting = list.filter(D.pendingSuggestion);
     const tot = D.totals(list);
-    content.innerHTML = `
+    out().innerHTML = `
       <div class="card filters">
         <label>${esc(S.car)}<select data-f="carId">${opt("", S.allCars, F.carId)}${st.cars.map(c => opt(c.id, c.name, F.carId)).join("")}</select></label>
         <label>${esc(S.month)}<select data-f="month">${opt("", S.allMonths, F.month)}${monthsOf(st.drives).map(m => opt(m, U.monthLabel(m), F.month)).join("")}</select></label>
@@ -470,10 +540,7 @@ export function start(S, lang) {
         <div class="row"><button class="btn alt" data-act="resuggest">${esc(S.resuggest)}</button><span class="muted">${esc(S.suggestNote)}</span></div>
         <div id="drvMsg" class="msg"></div>
       </div>
-      <div class="card tablecard">${list.length ? `<div class="scroll"><table class="drives">
-        <thead><tr><th>${esc(S.colDate)}</th><th>${esc(S.colRoute)}</th><th class="n">${esc(S.colDist)}</th><th class="n">${esc(S.colMin)}</th>
-        <th class="n">${esc(S.colUsed)}</th><th class="n">${esc(S.colEff)}</th><th class="n">${esc(S.colTemp)}</th><th>${esc(S.colPurpose)}</th><th>${esc(S.colNotes)}</th></tr></thead>
-        <tbody>${list.map(driveRow).join("")}</tbody></table></div>` : `<p class="muted">${esc(S.noMatch)}</p>`}</div>
+      <div class="drivelist">${list.length ? list.map(driveRow).join("") : `<div class="card"><p class="muted">${esc(S.noMatch)}</p></div>`}</div>
       ${rulesHTML()}`;
   }
 
@@ -481,19 +548,17 @@ export function start(S, lang) {
     const wh = D.whPerMile(d, st.cars), sug = D.pendingSuggestion(d);
     const used = d.pctUsed != null ? (d.pctEstimated ? "≈" : "") + Math.round(d.pctUsed) + "%" : "";
     const sugText = sug ? (d.suggestedRule ? t(d.suggestedBy === "ai" ? "suggestedAi" : "suggested", purposeWord(sug), d.suggestedRule) : t("suggestedPlain", purposeWord(sug))) : "";
-    return `<tr data-id="${esc(d.id)}">
-      <td><button class="link" data-act="showdrive" title="${esc(S.showOnMap)}">${esc(new Date(d.start).toLocaleDateString(S._locale, { month: "short", day: "numeric" }))}<br><span class="muted">${esc(U.time(d.start))}</span></button>
-        ${S._carCol && st.cars.length > 1 ? `<div class="muted small">${esc(carName(d.carId))}</div>` : ""}</td>
-      <td class="route">${esc(D.placeLabel(d, "start"))} → ${esc(D.placeLabel(d, "end"))}</td>
-      <td class="n">${esc(U.dist(d.miles || 0).replace(/\s*\D+$/, ""))}</td>
-      <td class="n">${Math.round(D.minutes(d))}</td>
-      <td class="n">${esc(used)}</td>
-      <td class="n">${wh != null ? Math.round(U.effVal(wh)) + (D.chargedOnTheWay(d, st.cars) ? "*" : "") : ""}</td>
-      <td class="n">${esc(U.temp(d.tempF))}</td>
-      <td><select data-act="purpose" aria-label="${esc(S.colPurpose)}">${opt("", "—", d.purpose)}${opt("business", S.business, d.purpose)}${opt("personal", S.personal, d.purpose)}</select>
-        ${sug ? `<div class="sugg-tag">${esc(sugText)} <span class="acts"><button class="mini ok" data-act="approve">${esc(S.ok)}</button><button class="mini" data-act="dismiss">${esc(S.dismiss)}</button></span></div>` : ""}</td>
-      <td><input class="note" data-act="note" value="${esc(d.notes || "")}" placeholder="${esc(S.notesPh)}" aria-label="${esc(S.colNotes)}"></td>
-    </tr>`;
+    const facts = [U.dist(d.miles || 0), `${Math.round(D.minutes(d))} min`, used, wh != null ? U.eff(wh) + (D.chargedOnTheWay(d, st.cars) ? "*" : "") : "", d.tempF != null ? U.temp(d.tempF) : ""].filter(Boolean);
+    return `<div class="card drive" data-id="${esc(d.id)}">
+      <div class="dtop"><button class="dwhen" data-act="showdrive" title="${esc(S.showOnMap)}">
+          <b>${esc(new Date(d.start).toLocaleDateString(S._locale, { weekday: "short", month: "short", day: "numeric" }))}</b>
+          <span class="muted">${esc(U.time(d.start))}${S._carCol && st.cars.length > 1 ? " · " + esc(carName(d.carId)) : ""}</span></button>
+        <select class="pill ${d.purpose || "none"}" data-act="purpose" aria-label="${esc(S.colPurpose)}">${opt("", S.untagged, d.purpose)}${opt("business", S.business, d.purpose)}${opt("personal", S.personal, d.purpose)}</select></div>
+      <div class="droute">${esc(D.placeLabel(d, "start"))} → <b>${esc(D.placeLabel(d, "end"))}</b></div>
+      <div class="dfacts">${facts.map(f => `<span>${esc(f)}</span>`).join("")}</div>
+      ${sug ? `<div class="sugg-tag">✨ ${esc(sugText)} <span class="acts"><button class="mini ok" data-act="approve">${esc(S.ok)}</button><button class="mini" data-act="dismiss">${esc(S.dismiss)}</button></span></div>` : ""}
+      <input class="note" data-act="note" value="${esc(d.notes || "")}" placeholder="${esc(S.notesPh)}" aria-label="${esc(S.colNotes)}">
+    </div>`;
   }
 
   function rulesHTML() {
@@ -515,7 +580,7 @@ export function start(S, lang) {
   }
 
   const touch = d => { d.updatedAt = new Date().toISOString(); };
-  const findDrive = el => st.drives.find(d => d.id === el.closest("tr")?.dataset.id);
+  const findDrive = el => st.drives.find(d => d.id === el.closest("[data-id]")?.dataset.id);
 
   function drawDrive(d) {
     clearMap("drive");
@@ -527,17 +592,17 @@ export function start(S, lang) {
   }
 
   content.addEventListener("click", e => {
-    if (P.tab !== "drives") return;
+    if (P.tab !== "drives" || (P.dsub && P.dsub !== "drives")) return;
     const b = e.target.closest("[data-act]"); if (!b) return;
     const act = b.dataset.act;
     if (act === "showdrive") { const d = findDrive(b); if (d) drawDrive(d); }
-    else if (act === "approve") { const d = findDrive(b); if (d && D.approve(d)) { save(st, ["drives"]); renderDrives(); } }
-    else if (act === "dismiss") { const d = findDrive(b); if (d) { D.dismiss(d); save(st, ["drives"]); renderDrives(); } }
+    else if (act === "approve") { const d = findDrive(b); if (d && D.approve(d)) { save(st, ["drives"]); render(); } }
+    else if (act === "dismiss") { const d = findDrive(b); if (d) { D.dismiss(d); save(st, ["drives"]); render(); } }
     else if (act === "approveall") {
       const list = D.filterDrives(st.drives, F).filter(D.pendingSuggestion);
-      list.forEach(d => D.approve(d)); save(st, ["drives"]); renderDrives();
+      list.forEach(d => D.approve(d)); save(st, ["drives"]); render();
     } else if (act === "resuggest") {
-      const r = D.resuggest(st.drives, st.rules); save(st, ["drives"]); renderDrives(); msg("drvMsg", t("resuggested", r.checked, r.changed));
+      const r = D.resuggest(st.drives, st.rules); save(st, ["drives"]); render(); msg("drvMsg", t("resuggested", r.checked, r.changed));
     } else if (act === "readrule") {
       const r = D.parseRule($("rText").value);
       if (!r) return msg("ruleMsg", S.ruleCantRead, true);
@@ -551,18 +616,18 @@ export function start(S, lang) {
       if ($("rOther").value && r.days !== "any") r.otherwise = $("rOther").value;
       st.rules.push(r);
       const res = D.resuggest(st.drives, st.rules);
-      save(st, ["rules", "drives"]); renderDrives(); msg("drvMsg", t("resuggested", res.checked, res.changed));
+      save(st, ["rules", "drives"]); render(); msg("drvMsg", t("resuggested", res.checked, res.changed));
     } else if (act === "delrule") {
-      st.rules = st.rules.filter(r => r.id !== b.dataset.id); save(st, ["rules"]); renderDrives();
+      st.rules = st.rules.filter(r => r.id !== b.dataset.id); save(st, ["rules"]); render();
     }
   });
   content.addEventListener("change", e => {
-    if (P.tab !== "drives") return;
+    if (P.tab !== "drives" || (P.dsub && P.dsub !== "drives")) return;
     const f = e.target.closest("[data-f]");
-    if (f) { F[f.dataset.f] = f.value || undefined; if (f.dataset.f === "month" && f.value) F.year = undefined; if (f.dataset.f === "year" && f.value) F.month = undefined; savePrefs(); renderDrives(); return; }
+    if (f) { F[f.dataset.f] = f.value || undefined; if (f.dataset.f === "month" && f.value) F.year = undefined; if (f.dataset.f === "year" && f.value) F.month = undefined; savePrefs(); render(); return; }
     const a = e.target.dataset.act, d = a && findDrive(e.target);
     if (!d) return;
-    if (a === "purpose") { if (e.target.value) d.purpose = e.target.value; else delete d.purpose; touch(d); save(st, ["drives"]); renderDrives(); }
+    if (a === "purpose") { if (e.target.value) d.purpose = e.target.value; else delete d.purpose; touch(d); save(st, ["drives"]); render(); }
     else if (a === "note") { d.notes = e.target.value; touch(d); save(st, ["drives"]); }
   });
 
@@ -572,14 +637,14 @@ export function start(S, lang) {
   function carIds() { const ids = st.cars.map(c => c.id); for (const d of st.drives) if (!ids.includes(d.carId)) ids.push(d.carId); return ids; }
   function renderTrends() {
     const ids = carIds();
-    if (!st.drives.length) { content.innerHTML = `<div class="card"><p>${esc(S.noDrives)}</p><button class="btn" data-goto="data">${esc(S.importNow)}</button></div>`; return; }
+    if (!st.drives.length) { out().innerHTML = `<div class="card"><p>${esc(signedIn ? S.noDrivesYet : S.drivesSignIn)}</p></div>`; return; }
     if (!ids.includes(P.trendCar)) P.trendCar = ids[0];
     const tr = D.trends(st.drives.filter(d => d.carId === P.trendCar), st.cars);
     const months = tr.months.slice(-24);
     const effPts = months.map(m => ({ label: U.monthLabel(m.key), value: m.whPerMile != null ? U.effVal(m.whPerMile) : null }));
     const miPts = months.map(m => ({ label: U.monthLabel(m.key), value: U.distVal(m.miles) }));
     const bandMax = Math.max(1, ...tr.bands.map(b => b.whPerMile || 0));
-    content.innerHTML = `
+    out().innerHTML = `
       <div class="card filters"><label>${esc(S.car)}<select id="trendCar">${ids.map(id => opt(id, carName(id) || S.unknownCar, P.trendCar)).join("")}</select></label></div>
       <div class="card"><h2>${esc(S.lifetime)}</h2>
         <p class="big-line">${esc(U.dist(tr.lifetimeMiles))}${tr.lifetimeWhPerMile ? " · " + esc(U.eff(tr.lifetimeWhPerMile)) : ""}</p>
@@ -595,7 +660,7 @@ export function start(S, lang) {
         : `<p class="muted">${esc(S.fewDrives)}</p>`}</div>`;
   }
   content.addEventListener("change", e => {
-    if (P.tab === "trends" && e.target.id === "trendCar") { P.trendCar = e.target.value; savePrefs(); renderTrends(); }
+    if (P.tab === "drives" && P.dsub === "trends" && e.target.id === "trendCar") { P.trendCar = e.target.value; savePrefs(); render(); }
   });
 
   // =====================================================================
@@ -614,9 +679,9 @@ export function start(S, lang) {
   const periodLabel = p => p.length === 4 ? p : new Date(+p.slice(0, 4), +p.slice(5) - 1, 1).toLocaleDateString(S._locale, { year: "numeric", month: "long" });
 
   function renderTaxes() {
-    if (!st.drives.length) { content.innerHTML = `<div class="card"><p>${esc(S.noDrives)}</p><button class="btn" data-goto="data">${esc(S.importNow)}</button></div>`; return; }
+    if (!st.drives.length) { out().innerHTML = `<div class="card"><p>${esc(signedIn ? S.noDrivesYet : S.drivesSignIn)}</p></div>`; return; }
     const x = taxState();
-    content.innerHTML = `
+    out().innerHTML = `
       <div class="card filters">
         <div class="seg">${["month", "year"].map(m => `<button data-act="taxmode" data-m="${m}" class="${x.mode === m ? "on" : ""}">${esc(m === "month" ? S.monthly : S.yearly)}</button>`).join("")}</div>
         <label>${esc(S.period)}<select id="taxPeriod">${x.periods.map(p => opt(p, periodLabel(p), x.period)).join("")}</select></label>
@@ -661,10 +726,10 @@ export function start(S, lang) {
   }
 
   content.addEventListener("click", e => {
-    if (P.tab !== "taxes") return;
+    if (P.tab !== "drives" || P.dsub !== "taxes") return;
     const b = e.target.closest("[data-act]"); if (!b) return;
     const x = taxState();
-    if (b.dataset.act === "taxmode") { P.taxMode = b.dataset.m; P.taxPeriod = undefined; savePrefs(); renderTaxes(); }
+    if (b.dataset.act === "taxmode") { P.taxMode = b.dataset.m; P.taxPeriod = undefined; savePrefs(); render(); }
     else if (b.dataset.act === "csv" && x.period) {
       const pool_ = P.taxCar ? st.drives.filter(d => d.carId === P.taxCar) : st.drives;
       download(`JUICE-drives-${x.period}.csv`, D.toCSV(pool_, st.cars, x.period, { headers: S.csvHeaders, purposeWord: p => purposeWord(p), distVal: U.distVal }), "text/csv;charset=utf-8");
@@ -676,12 +741,12 @@ export function start(S, lang) {
   });
   window.addEventListener("afterprint", () => document.body.classList.remove("printing"));
   content.addEventListener("change", e => {
-    if (P.tab !== "taxes") return;
-    if (e.target.id === "taxPeriod") { P.taxPeriod = e.target.value; savePrefs(); renderTaxes(); }
-    else if (e.target.id === "taxCar") { P.taxCar = e.target.value || undefined; savePrefs(); renderTaxes(); }
+    if (P.tab !== "drives" || P.dsub !== "taxes") return;
+    if (e.target.id === "taxPeriod") { P.taxPeriod = e.target.value; savePrefs(); render(); }
+    else if (e.target.id === "taxCar") { P.taxCar = e.target.value || undefined; savePrefs(); render(); }
   });
   content.addEventListener("input", e => {
-    if (P.tab !== "taxes" || e.target.id !== "rate") return;
+    if (P.tab !== "drives" || P.dsub !== "taxes" || e.target.id !== "rate") return;
     const v = parseFloat(e.target.value);
     if (!(v >= 0)) return;
     P.rate = v; savePrefs();
@@ -689,68 +754,58 @@ export function start(S, lang) {
   });
 
   // =====================================================================
-  // DATA
+  // GARAGE (account, cars, saved places, plan) — like the app's Garage tab
   // =====================================================================
   function tierName() { return { free: S.tierFree, plus: S.tierPlus, pro: S.tierPro }[st.meta.tier || "free"]; }
-  function renderData() {
+  function renderGarage() {
+    const cars = st.cars || [];
+    const places = st.places || [], favs = st.favorites || [];
     content.innerHTML = `
-      <div class="card"><h2>${esc(t("planLine", tierName()))}</h2>
-        <p class="muted">${esc(st.meta.importedAt ? t("planFromFile", U.dateTime(st.meta.importedAt)) : S.planNoFile)}</p>
-        <p class="muted">${esc(S.tierHelp)}</p></div>
-      <div class="card"><h2>${esc(S.importTitle)}</h2>
-        <p>${esc(S.importHelp)}</p>
-        <label class="btn file">${esc(S.pickFile)}<input type="file" id="importFile" accept=".json,application/json" hidden></label>
-        <div id="impMsg" class="msg"></div>
-        <p class="muted small">${esc(CK.enabled() ? S.ckDataHint : S.icloudSoon)}</p></div>
-      <div class="card"><h2>${esc(S.exportTitle)}</h2>
-        <p>${esc(S.exportHelp)}</p>
-        <button class="btn alt" data-act="export">${esc(S.exportBtn)}</button></div>
-      <div class="card"><h2>${esc(S.inBrowser)}</h2>
-        <p class="muted">${esc(t("counts", st.cars.length, st.drives.length, st.rules.length, st.trips.length, st.planned.length))}</p>
-        <button class="btn danger" data-act="clear">${esc(S.clearData)}</button></div>`;
+      ${signedIn ? `<div class="card account on"><div class="apple-glyph"></div><div><h3>${esc(S.signedInApple)}</h3>
+          <p class="muted" id="garageSync">${esc(syncLine())}</p></div></div>`
+        : signInCard(S.garageSignIn)}
+      <div class="card"><h3>${esc(S.yourCars)}</h3>
+        ${cars.length ? cars.map(c => `<div class="carrow"><div class="carico">🚗</div><div><b>${esc(c.name)}</b>
+          <span class="muted">${esc(c.title && c.title !== c.name ? c.title + " · " : "")}${esc(t("carSpec", U.dist(c.rangeMi || 0), Math.round(c.batteryKwh || 0)))}</span></div></div>`).join("")
+          : `<p class="muted">${esc(signedIn ? S.noCarsYet : S.carsAfterSignIn)}</p>`}
+      </div>
+      <div class="card"><h3>${esc(S.savedPlacesTitle)}</h3>
+        ${places.length || favs.length ? `<ul class="list">${places.map(p => `<li><div><b>${esc(placeIcon(p.kind))} ${esc(placeName(p))}</b>
+            <span class="muted">${esc(p.item?.subtitle || p.address || "")}</span></div>
+            <div class="acts"><button class="link" data-act="goplace" data-lat="${p.item?.lat ?? ""}" data-lon="${p.item?.lon ?? ""}" data-name="${esc(placeName(p))}">${esc(S.goHere)}</button></div></li>`).join("")}
+          ${favs.map(c => `<li><div><b>★ ${esc(c.name)}</b><span class="muted">${esc(t("chargerMeta", c.network || S.unknownNetwork, Math.round(c.maxKw || 0)))}</span></div></li>`).join("")}</ul>`
+          : `<p class="muted">${esc(signedIn ? S.noPlacesYet : S.placesAfterSignIn)}</p>`}
+      </div>
+      <div class="card"><h3>${esc(t("planLine", tierName()))}</h3><p class="muted">${esc(signedIn ? S.tierFromPhone : S.tierHelpSignIn)}</p></div>`;
   }
-  content.addEventListener("change", async e => {
-    if (e.target.id !== "importFile") return;
-    const f = e.target.files?.[0]; if (!f) return;
-    try {
-      const j = JSON.parse(await f.text());
-      const r = mergeImport(st, j);
-      if (!ownCars().some(c => c.id === P.car) && !PRESETS.some(p => p.id === P.car) && st.cars[0]) P.car = st.cars[0].id;
-      if (P.car && PRESETS.some(p => p.id === P.car) && st.cars[0]) P.car = st.cars[0].id;
-      save(st);
-      renderData();
-      renderTabs();
-      msg("impMsg", t("imported", r.cars, r.drives, r.rules, r.trips, r.planned));
-    } catch { msg("impMsg", S.importBad, true); }
-  });
+  let lastInfo = null;
+  const syncLine = () => lastInfo ? t("ckSyncedLive", lastInfo.drives, lastInfo.trips, (st.places || []).length) : S.ckSyncing;
   content.addEventListener("click", e => {
-    if (P.tab !== "data") return;
-    const b = e.target.closest("[data-act]"); if (!b) return;
-    if (b.dataset.act === "export") {
-      download(`JUICE-web-${dayKey(new Date())}.json`, JSON.stringify(buildExport(st, lang), null, 2), "application/json");
-    } else if (b.dataset.act === "clear") {
-      if (!confirm(S.clearConfirm)) return;
-      clearAll(); location.reload();
-    }
+    if (P.tab !== "garage") return;
+    const b = e.target.closest('[data-act="goplace"]'); if (!b || !b.dataset.lat) return;
+    places.to = { text: b.dataset.name, sel: { title: b.dataset.name, short: b.dataset.name, lat: +b.dataset.lat, lon: +b.dataset.lon } };
+    persistPlaces(); go("trip");
   });
 
   render();
 
-  // ---------- Sign in with Apple ID (iCloud sync with the app) ----------
-  const ckLine = (k, ...a) => { const el = $("ckLine"); if (el) el.textContent = t(k, ...a); };
+  // ---------- Sign in with Apple ID: the same iCloud account as the app, live ----------
+  const line = text => { $("bannerLine").textContent = text; };
   cloud = CK.mount({
     getState: () => st,
     persist: () => storeSave(st),
     onStatus: (s, e) => {
-      $("ckBar").classList.toggle("on", s === "signedIn" || s === "syncing");
-      if (s === "signedOut") { $("ckTitle").textContent = S.ckTitle; ckLine("ckHelp"); }
-      else if (s === "syncing") { $("ckTitle").textContent = S.ckSignedIn; ckLine("ckSyncing"); }
-      else if (s === "error") ckLine("ckError");
+      signedIn = s === "signedIn" || s === "syncing";
+      document.body.classList.toggle("signedin", signedIn);
+      if (s === "signedOut") { line(S.bannerHello); if (P.tab === "garage" || P.tab === "drives") render(); }
+      else if (s === "syncing") line(S.ckSyncing);
+      else if (s === "error") line(e && (e.ckErrorCode === "QUOTA_EXCEEDED" || e.serverErrorCode === "QUOTA_EXCEEDED") ? S.icloudFull : S.ckError);
     },
     onSynced: (n, info) => {
-      $("ckTitle").textContent = S.ckSignedIn;
-      ckLine("ckSynced", info.drives, info.trips, info.planned);
-      if (n > 0) { renderTabs(); render(); }
+      lastInfo = info;
+      line(t("bannerSynced", info.drives, info.trips));
+      if (!ownCars().some(c => c.id === P.car) && st.cars[0]) { P.car = st.cars[0].id; savePrefs(); }
+      if (n > 0 || P.tab === "garage" || P.tab === "drives") render(); else drawPlaces();
     },
   });
 }
