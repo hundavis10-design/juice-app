@@ -53,13 +53,14 @@ export function lineChart(points, { fmtY = v => String(Math.round(v)), color = "
 
 export function barChart(points, { fmtY = v => String(Math.round(v)), color = "var(--pink)", title = "" } = {}) {
   if (!points.length) return "";
-  const maxY = niceMax(Math.max(...points.map(p => p.value || 0)));
+  points = points.map(p => ({ ...p, value: Number.isFinite(+p.value) ? +p.value : 0 }));   // one bad record must not blank the chart
+  const maxY = niceMax(Math.max(...points.map(p => p.value)));
   const n = points.length, slot = (W - PAD.l - PAD.r) / n, bw = Math.min(42, slot * 0.7);
   const xAt = i => PAD.l + slot * (i + 0.5);
   let s = axes(maxY, points.map(p => p.label), xAt, fmtY);
   points.forEach((p, i) => {
-    const h = (H - PAD.t - PAD.b) * (p.value || 0) / maxY;
-    s += `<rect x="${xAt(i) - bw / 2}" y="${H - PAD.b - h}" width="${bw}" height="${h}" rx="5" fill="${color}"><title>${esc(p.label)}: ${esc(fmtY(p.value || 0))}</title></rect>`;
+    const h = (H - PAD.t - PAD.b) * p.value / maxY;
+    s += `<rect x="${xAt(i) - bw / 2}" y="${H - PAD.b - h}" width="${bw}" height="${h}" rx="5" fill="${color}"><title>${esc(p.label)}: ${esc(fmtY(p.value))}</title></rect>`;
   });
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">${s}</svg>`;
 }

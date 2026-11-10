@@ -221,3 +221,11 @@ body.signedin #apple-sign-in-button { display: none; }
 body.signedin .siwa { display: none; }
 body.signedin .me { display: grid; }
 @media (max-width: 480px) { .siwa { padding: 0 12px; font-size: 13px; } }
+/* Phone width: the buttons take the first row and the banner its own, so its line is readable instead of "Pl…". */
+@media (max-width: 480px) {
+  .top { flex-wrap: wrap; }
+  .topright { order: -1; width: 100%; justify-content: flex-end; }
+  .banner { flex-basis: 100%; }
+  .btext span { white-space: normal; }
+  .leaflet-top.leaflet-right { top: 150px; }   /* below the two-row header */
+}

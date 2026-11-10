@@ -12,7 +12,7 @@ import { PRESETS } from "./presets.js";
 export function start(S, lang) {
   const U = makeUnits(S);
   const st = load();
-  // Every change saves to this browser and (signed in with Apple ID) syncs to iCloud a few seconds later.
+  // Every change saves to this browser and (signed in with Apple ID) syncs to the JUICE account a few seconds later.
   let cloud = { schedule() {}, syncNow() {} };
   const save = (s, keys) => { storeSave(s, keys); if (!(keys && keys.length === 1 && keys[0] === "prefs")) cloud.schedule(); };
   const P = st.prefs;
@@ -76,7 +76,7 @@ export function start(S, lang) {
   const fixMap = () => setTimeout(() => map.invalidateSize(), 60);
   window.addEventListener("resize", fixMap);
 
-  /** Saved places and favorite chargers from the iPhone (iCloud), on the map like in the app. */
+  /** Saved places and favorite chargers from the iPhone (JUICE account), on the map like in the app. */
   function drawPlaces() {
     clearMap("places");
     for (const p of st.places || []) {
@@ -86,6 +86,7 @@ export function start(S, lang) {
         .bindPopup(`<b>${esc(placeName(p))}</b>${p.item?.subtitle ? "<br>" + esc(p.item.subtitle) : ""}`).addTo(layers.places);
     }
     for (const c of st.favorites || []) {
+      if (c.lat == null || c.lon == null) continue;
       L.marker([c.lat, c.lon], { icon: L.divIcon({ className: "pin-fav", html: "<span>★</span>", iconSize: [26, 26] }) })
         .bindPopup(`<b>${esc(c.name)}</b><br>${esc(t("chargerMeta", c.network || S.unknownNetwork, Math.round(c.maxKw || 0)))}`).addTo(layers.places);
     }
@@ -141,12 +142,11 @@ export function start(S, lang) {
       if (!tierAtLeast(st, "pro")) { content.innerHTML = locked(S.featDrives); fixMap(); return; }
       const sub = SUBS.some(x => x.id === P.dsub) ? P.dsub : "drives";
       content.innerHTML = `<div class="seg wide" id="dsub">${SUBS.map(x => `<button data-sub="${x.id}" class="${sub === x.id ? "on" : ""}">${esc(x.label)}</button>`).join("")}</div><div id="dpane"></div>`;
-      const inner = content; const pane = $("dpane");
+      const pane = $("dpane");
       // The drive screens write into #content; point them at the pane under the switch.
       contentTarget = pane;
       ({ drives: renderDrives, trends: renderTrends, taxes: renderTaxes })[sub]();
       contentTarget = null;
-      void inner;
     }
     fixMap();
   }
@@ -165,7 +165,7 @@ export function start(S, lang) {
     const g = e.target.closest("[data-goto]"); if (g) go(g.dataset.goto);
     if (e.target.closest('[data-act="signin"]')) cloud.signIn?.();
     if (e.target.closest('[data-act="signout"]')) { cloud.signOut?.(); render(); }
-    if (e.target.closest('[data-act="delacct"]') && confirm(S.deleteAcctConfirm)) cloud.deleteAccount?.().then(() => render());
+    if (e.target.closest('[data-act="delacct"]') && confirm(S.deleteAcctConfirm)) cloud.deleteAccount?.().then(() => render()).catch(() => line(S.acctError));
   });
 
   function download(name, text, type) {
@@ -490,7 +490,7 @@ export function start(S, lang) {
     else if (act === "calgo") {
       const day = $("calDate").value, time = $("calTime").value;
       if (!day || !time) return;
-      const tr = plan.tripId ? st.trips.find(x => x.id === plan.tripId) : saveTrip($("tripName")?.value.trim());
+      const tr = (plan.tripId && st.trips.find(x => x.id === plan.tripId)) || saveTrip($("tripName")?.value.trim());   // the saved trip may have been deleted since
       const alarm = $("calAlarm").checked;
       const p = { id: uid(), tripId: tr.id, name: tr.name, start: new Date(`${day}T${time}`).toISOString(),
         minutes: Math.round(plan.result.driveMin + plan.result.chargeMin), alarm, updatedAt: new Date().toISOString() };
@@ -553,7 +553,7 @@ export function start(S, lang) {
     const wh = D.whPerMile(d, st.cars), sug = D.pendingSuggestion(d);
     const used = d.pctUsed != null ? (d.pctEstimated ? "≈" : "") + Math.round(d.pctUsed) + "%" : "";
     const sugText = sug ? (d.suggestedRule ? t(d.suggestedBy === "ai" ? "suggestedAi" : "suggested", purposeWord(sug), d.suggestedRule) : t("suggestedPlain", purposeWord(sug))) : "";
-    const facts = [U.dist(d.miles || 0), `${Math.round(D.minutes(d))} min`, used, wh != null ? U.eff(wh) + (D.chargedOnTheWay(d, st.cars) ? "*" : "") : "", d.tempF != null ? U.temp(d.tempF) : ""].filter(Boolean);
+    const facts = [U.dist(d.miles || 0), t("minFmt", Math.round(D.minutes(d))), used, wh != null ? U.eff(wh) + (D.chargedOnTheWay(d, st.cars) ? "*" : "") : "", d.tempF != null ? U.temp(d.tempF) : ""].filter(Boolean);
     return `<div class="card drive" data-id="${esc(d.id)}">
       <div class="dtop"><button class="dwhen" data-act="showdrive" title="${esc(S.showOnMap)}">
           <b>${esc(new Date(d.start).toLocaleDateString(S._locale, { weekday: "short", month: "short", day: "numeric" }))}</b>
@@ -778,7 +778,7 @@ export function start(S, lang) {
       <div class="card"><h3>${esc(S.savedPlacesTitle)}</h3>
         ${places.length || favs.length ? `<ul class="list">${places.map(p => `<li><div><b>${esc(placeIcon(p.kind))} ${esc(placeName(p))}</b>
             <span class="muted">${esc(p.item?.subtitle || p.address || "")}</span></div>
-            <div class="acts"><button class="link" data-act="goplace" data-lat="${p.item?.lat ?? ""}" data-lon="${p.item?.lon ?? ""}" data-name="${esc(placeName(p))}">${esc(S.goHere)}</button></div></li>`).join("")}
+            <div class="acts"><button class="link" data-act="goplace" data-lat="${esc(p.item?.lat ?? p.lat ?? "")}" data-lon="${esc(p.item?.lon ?? p.lon ?? "")}" data-name="${esc(placeName(p))}">${esc(S.goHere)}</button></div></li>`).join("")}
           ${favs.map(c => `<li><div><b>★ ${esc(c.name)}</b><span class="muted">${esc(t("chargerMeta", c.network || S.unknownNetwork, Math.round(c.maxKw || 0)))}</span></div></li>`).join("")}</ul>`
           : `<p class="muted">${esc(signedIn ? S.noPlacesYet : S.placesAfterSignIn)}</p>`}
       </div>
@@ -797,11 +797,13 @@ export function start(S, lang) {
 
   // ---------- Sign in with Apple: the same JUICE account as the app (api.juiceev.app), live ----------
   $("meBtn").addEventListener("click", () => go("garage"));
+  $("siwaTop").addEventListener("click", () => cloud.signIn?.());   // the header sits outside #content's click handler
   const line = text => { $("bannerLine").textContent = text; };
   cloud = Account.mount({
     lang,
     getState: () => st,
     persist: () => storeSave(st),
+    reload: () => Object.assign(st, load()),
     onStatus: (s) => {
       const was = signedIn;
       signedIn = s === "signedIn" || s === "syncing";
@@ -815,7 +817,8 @@ export function start(S, lang) {
       lastInfo = info;
       line(t("bannerSynced", info.drives, info.trips));
       if (!ownCars().some(c => c.id === P.car) && st.cars[0]) { P.car = st.cars[0].id; savePrefs(); }
-      if (n > 0 || P.tab === "garage" || P.tab === "drives") render(); else drawPlaces();
+      // Nothing changed: leave the page alone (a full redraw every minute would wipe a note being typed).
+      if (n > 0) render(); else { drawPlaces(); const g = $("garageSync"); if (g) g.textContent = syncLine(); }
     },
   });
 }

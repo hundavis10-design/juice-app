@@ -72,6 +72,7 @@ export function trends(drives, cars) {
     m.effMiles += d.miles; m.kwh += k; effMi += d.miles; kwh += k;
     if (d.tempF != null) {
       const i = BANDS.findIndex(b => b.test(d.tempF));
+      if (i < 0) continue;   // a temperature that isn't a number fits no band
       bands[i].miles += d.miles; bands[i].kwh += k; bands[i].drives++;
     }
   }

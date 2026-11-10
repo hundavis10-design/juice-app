@@ -14,16 +14,16 @@
 <nav><a class="on" href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="support.html">Support</a></nav>
 </header>
 <h1>Privacy Policy</h1>
-<p class="muted">Effective November 8, 2026</p>
+<p class="muted">Effective November 10, 2026</p>
 
-<p>JUICE ("the app") is made by Hunter Davis, an independent developer ("I", "me"). This policy explains what the app uses, why, and where it goes. The short version: there is no separate JUICE account (the optional sign-in is your own Apple ID), no ads, no analytics or tracking tools, and almost everything stays on your iPhone.</p>
+<p>JUICE ("the app") is made by Hunter Davis, an independent developer ("I", "me"). This policy explains what the app uses, why, and where it goes. The short version: there is no sign-up with me and no password (the optional JUICE account is Sign in with Apple, section 7), no ads, no analytics or tracking tools, and almost everything stays on your iPhone.</p>
 
 <div class="card">
 <ul>
-<li>No JUICE accounts. No sign-up with me.</li>
+<li>No sign-up with me and no passwords. The optional JUICE account is Sign in with Apple (section 7).</li>
 <li>No ads, and no third-party analytics, crash-reporting or tracking SDKs.</li>
 <li>I do not sell your data or share it for advertising. JUICE does not track you across other companies' apps or websites, so it never asks for tracking permission.</li>
-<li>JUICE has no database of its own about you. Your trips, cars, drives and settings are saved on your device.</li>
+<li>Unless you sign in to the optional JUICE account (section 7), JUICE keeps no database about you: your trips, cars, drives and settings are saved on your device.</li>
 </ul>
 </div>
 
@@ -58,7 +58,7 @@
 <li>You sign in on Tesla's own website in a secure Apple sign-in window. JUICE never sees your Tesla password.</li>
 <li>To finish sign-in, Tesla returns a one-time code through a small callback page hosted on GitHub Pages, and that code is exchanged for access tokens through a small relay I run on Cloudflare Workers. The relay exists only to add JUICE's app secret so it is not stored inside the app. It forwards the request to Tesla and returns Tesla's answer to your phone. It does not store or log your code or tokens, and later token refreshes go straight from your phone to Tesla.</li>
 <li>Your Tesla tokens are stored in the iOS Keychain on your device.</li>
-<li>JUICE uses the Tesla Fleet API only while the app is open, to read your car's battery and charging state, location, odometer and navigation destination, and to send destinations to the car when you ask.</li>
+<li>JUICE uses the Tesla Fleet API only while the app is open, to read your car's battery and charging state, location, odometer and navigation destination, and to send destinations to the car when you ask. If you turn on "Get ready for trips" (Pro), JUICE also sends the charge-limit and preconditioning commands you chose; these go through the same relay so they can be signed, your Tesla access token travels with that one request, and it is not stored or logged.</li>
 <li>You can unlink your Tesla at any time in Garage. You can also revoke JUICE's access in your Tesla account.</li>
 </ul>
 
@@ -72,6 +72,9 @@
 <p>If you use iCloud sync (Plus or Pro), your garage cars, learned car models, saved places, favorite chargers, saved trips and settings sync through your own iCloud account. Apple stores and handles this data under Apple's privacy policy; I cannot see it.</p>
 <p><strong>JUICE account: Sign in with Apple (app and website).</strong> If you choose "Sign in with Apple" in the app (Garage → Settings) or on the JUICE website (juiceev.app), your drives (with tags and notes), saved trips, tag rules, saved places, favorite chargers, drives saved to a calendar day, and your car names and plan are kept on JUICE's own server (Cloudflare, United States), so the app, your other devices and the website show the same things. They are linked to the private ID Apple gives JUICE for your Apple ID, plus your first name and email only if you choose to share them with Apple's sign-in. This data is used only to sync your account. It is never sold, never used for ads, and not shared with anyone except Cloudflare, which hosts it. It does not use your iCloud storage. Sign out at any time; your data stays on your devices. To delete the account and everything in it from the server, use Delete account in Garage → Settings, or email me. The website keeps its own copy in your browser until you clear it there.</p>
 <p><strong>Rating JUICE's lines (optional).</strong> If you turn on "Help write JUICE's lines" in the bot panel, your ratings, tags and any note you write for each test line are sent to JUICE's server with a random tester ID that is not linked to your account or name. They are used only to choose what the JUICE bot says.</p>
+
+<p><strong>Share ETA (optional).</strong> If you share your arrival time from a running trip, that trip's stop names, arrival times and arrival battery level are kept on JUICE's server behind the link you send (never your location) and are deleted within 48 hours.</p>
+<p><strong>Crash reports.</strong> If the app crashes, the report Apple's system makes on your device (where in the code it stopped, the app build, the system version and the device model; nothing about you or your trips) is sent to JUICE's server the next time you open the app, so I can fix it. Reports are deleted after 90 days.</p>
 
 <h2>8. Charger reviews</h2>
 <p>Reviews you write are saved on your device. The review form has a switch to also post the review to Open Charge Map. When that switch is on, your star rating, comment and the name you enter (or "JUICE driver" if you leave it blank) are posted publicly on Open Charge Map, where anyone can see them. Open Charge Map does not allow edits after posting. Turn the switch off to keep a review on your phone only.</p>
@@ -93,11 +96,12 @@
 <li>Deleting JUICE from your iPhone removes the data saved on that device.</li>
 <li>Unlink your Tesla in Garage to remove the Tesla tokens from your device.</li>
 <li>iCloud copies can be removed in iPhone Settings → [your name] → iCloud.</li>
+<li>If you use the JUICE account, "Delete my JUICE account" in the app (Garage → Settings) or on the website (Garage) removes its data from JUICE's server.</li>
 <li>Reviews already posted to Open Charge Map are controlled by Open Charge Map.</li>
 </ul>
 
 <h2>13. Your rights</h2>
-<p>Depending on where you live (for example, under the California Consumer Privacy Act or the EU/UK General Data Protection Regulation), you may have the right to know what personal information is processed about you, to access, correct or delete it, and to object to or limit its use. Because I do not hold your data on any server, most of these rights are met by the controls on your own device. For any request or question, email <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a> and I will respond within a reasonable time. You may also contact your local data protection authority.</p>
+<p>Depending on where you live (for example, under the California Consumer Privacy Act or the EU/UK General Data Protection Regulation), you may have the right to know what personal information is processed about you, to access, correct or delete it, and to object to or limit its use. Unless you use the optional JUICE account, I do not hold your data on any server, so most of these rights are met by the controls on your own device. For any request or question, email <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a> and I will respond within a reasonable time. You may also contact your local data protection authority.</p>
 
 <h2>14. Changes</h2>
 <p>If this policy changes, I will update this page and its effective date. Significant changes will also be noted in the app or its release notes.</p>

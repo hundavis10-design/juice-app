@@ -25,7 +25,6 @@ export function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 /** Local calendar keys, e.g. "2026-11" and "2026-11-08". */
 export function monthKey(d) { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }

@@ -3,7 +3,8 @@
 // see my data". Sign in with Apple JS (Services ID com.hunterdavis.juice.web) → JUICE's own server api.juiceev.app
 // (Cloudflare Worker + D1). The iPhone/Mac app signs in with the same Apple ID and reads/writes the same records.
 //
-// Records: {kind, id, json, updated (ms), deleted}. kinds: drive, planned, trip, rule, place, favorite, car, meta.
+// Records: {kind, id, json, updated (ms), deleted}. kinds: drive, planned, trip, rule, place, favorite, car, meta
+// (the app also keeps "charge" records, which the website does not show).
 // Same rules as the app (Juice/CloudDrives.swift): pull what changed since last time (newer edit wins, deletes stick),
 // then push what changed here. The session lives in localStorage; nothing here touches iCloud.
 
@@ -123,15 +124,27 @@ function loadApple(lang) {
  * Sign in with Apple + live sync. getState() → browser state; persist() saves it; onStatus("signedOut"|"syncing"|
  * "signedIn"|"error"); onSynced(n, info). Returns { schedule(), signIn(), signOut(), deleteAccount(), signedIn() }.
  */
-export function mount({ lang, getState, persist, onStatus, onSynced }) {
+export function mount({ lang, getState, persist, reload, onStatus, onSynced }) {
   let timer = null, busy = false, again = false;
   const signedIn = () => !!localStorage.getItem(SESSION);
+  // One tab syncs at a time. Another tab (the other language's page, say) may have synced since this one last looked,
+  // so each run starts from what is saved in the browser, never from this tab's older copy: an item the other tab
+  // pulled must not look "deleted here".
+  const oneTabAtATime = work => (globalThis.navigator?.locks ? navigator.locks.request("juice.sync", work) : work());
 
   async function syncNow() {
     if (!signedIn()) return;
     if (busy) { again = true; return; }
     busy = true; onStatus?.("syncing");
+    try { await oneTabAtATime(syncOnce); } finally {
+      busy = false;
+      if (again) { again = false; syncNow(); }
+    }
+  }
+
+  async function syncOnce() {
     try {
+      reload?.();
       const st = getState(), sync = loadSync();
       let n = 0;
       for (;;) {
@@ -151,9 +164,6 @@ export function mount({ lang, getState, persist, onStatus, onSynced }) {
     } catch (e) {
       if (e.signedOut) { localStorage.removeItem(SESSION); onStatus?.("signedOut"); }
       else onStatus?.("error", e);
-    } finally {
-      busy = false;
-      if (again) { again = false; syncNow(); }
     }
   }
 
@@ -167,7 +177,14 @@ export function mount({ lang, getState, persist, onStatus, onSynced }) {
       const name = res?.user?.name?.firstName || null;
       const j = await api("POST", "/v1/auth/apple", { identityToken: token, name });
       const prev = loadSync();
-      if (prev.user && prev.user !== j.user) saveSync({});   // another Apple ID: start fresh
+      if (prev.user && prev.user !== j.user) {
+        // Another Apple ID: start fresh. The last person's data must not be uploaded into this account.
+        const st = getState();
+        for (const list of Object.values(LISTS)) st[list] = [];
+        st.deletedDrives = []; st.meta = { tier: "free" };
+        persist();
+        saveSync({});
+      }
       const s = loadSync(); s.user = j.user; s.name = j.name || name; saveSync(s);
       localStorage.setItem(SESSION, j.session);
       onStatus?.("signedIn");
@@ -183,7 +200,7 @@ export function mount({ lang, getState, persist, onStatus, onSynced }) {
 
   async function deleteAccount() {
     await api("DELETE", "/v1/me");
-    localStorage.removeItem(SESSION); saveSync({}); onStatus?.("signedOut");
+    localStorage.removeItem(SESSION); saveSync({ user: loadSync().user }); onStatus?.("signedOut");   // still know whose data is here
   }
 
   const schedule = () => { if (!signedIn()) return; clearTimeout(timer); timer = setTimeout(syncNow, 2500); };

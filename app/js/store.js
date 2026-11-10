@@ -15,10 +15,6 @@ export function save(st, keys = KEYS, storage = globalThis.localStorage) {
   for (const k of keys) { try { storage?.setItem("juice." + k, JSON.stringify(st[k])); } catch { /* full or blocked */ } }
 }
 
-export function clearAll(storage = globalThis.localStorage) {
-  for (const k of KEYS) storage?.removeItem("juice." + k);
-}
-
 export const TIERS = ["free", "plus", "pro"];
 export const tierAtLeast = (st, t) => TIERS.indexOf(st.meta?.tier || "free") >= TIERS.indexOf(t);
 
