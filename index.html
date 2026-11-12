@@ -2,33 +2,45 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JUICE: EV chargers and road trips</title>
-<meta name="description" content="JUICE finds EV chargers and plans road trips around your car's real battery.">
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JUICE EV: Charger Trip Planner</title>
+<meta name="description" content="The best EV charging app, made for Tesla drivers: chargers, road trips on your real battery, and Drives, an automatic mileage log.">
+<meta name="apple-itunes-app" content="app-id=6828181531">
+<meta name="theme-color" content="#0D0A1C">
+<meta property="og:title" content="JUICE EV: Charger Trip Planner">
+<meta property="og:description" content="The best EV charging app, made for Tesla drivers: chargers, road trips on your real battery, and Drives, an automatic mileage log.">
+<meta property="og:image" content="https://juiceev.app/icon-512.png">
+<link rel="icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{--bg:#0D0A1C;--card:#1A1430;--text:#F5F2FF;--muted:#9E94C2;--lime:#B8FF3D;--pink:#FF3D80;--violet:#8C5CFF}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,"PingFang HK",sans-serif}
+main{min-height:100svh;max-width:520px;margin:0 auto;padding:28px 24px 32px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.lang{align-self:flex-end;color:var(--muted);text-decoration:none;font-weight:700;font-size:14px;border:1px solid #ffffff1f;border-radius:999px;padding:6px 12px}
+.icon{width:128px;height:128px;border-radius:22.5%;margin-top:6vh;box-shadow:0 18px 48px #ff3d8055}
+.word{font-weight:900;font-size:34px;letter-spacing:4px;margin:18px 0 0}
+.word span{color:var(--lime)}
+h1{font-size:26px;line-height:1.2;font-weight:800;margin:14px 0 10px}
+p{color:var(--muted);font-size:16px;line-height:1.45;margin:0 0 26px}
+.chip{color:var(--bg);background:var(--lime);border-radius:999px;padding:1px 8px;font-weight:800;white-space:nowrap}
+.store{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border-radius:999px;color:#fff;text-decoration:none;font-weight:800;font-size:18px;background:linear-gradient(135deg,var(--pink),var(--violet));box-shadow:0 10px 30px #ff3d8066}
+.store svg{width:22px;height:22px;fill:#fff}
+.web{display:block;width:100%;margin-top:12px;padding:15px;border-radius:999px;color:var(--text);text-decoration:none;font-weight:700;font-size:16px;border:1px solid #ffffff2e;background:var(--card)}
+footer{margin-top:auto;padding-top:36px;color:var(--muted);font-size:13px}
+footer a{color:var(--muted)}
+</style>
 </head>
 <body>
 <main>
-<a class="lang" href="zh-hk/support.html" lang="zh-HK">廣東話</a>
-<header class="top">
-<a class="brand" href="index.html">JUICE<span>.</span></a>
-<nav><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="support.html">Support</a></nav>
-</header>
-<h1>EV chargers and road trips, without the range anxiety.</h1>
-<p>JUICE is an iPhone app that finds chargers near you, plans road trips around your car's real battery, and keeps your next stop, arrival time and battery on the Lock Screen while you drive with any navigation app.</p>
-<ul>
-<li>Chargers from public data sources, with filters for plug type, speed and network.</li>
-<li>Trip plans that learn how your car actually uses energy.</li>
-<li>Optional Tesla link (Pro) to read your live battery and send stops to the car.</li>
-<li>No ads, no tracking. Your data stays on your phone unless you choose to sign in with Apple to sync it.</li>
-</ul>
-<div class="cards">
-<a href="app/"><b>JUICE for the web</b>Plan trips on a big map, see your drives, export for taxes.</a>
-<a href="privacy.html"><b>Privacy Policy</b>What JUICE uses and why.</a>
-<a href="terms.html"><b>Terms of Use</b>The rules, including subscriptions.</a>
-<a href="support.html"><b>Support</b>Help, FAQ and contact.</a>
-</div>
-<footer>JUICE is made by Hunter Davis, an independent developer. Contact: <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a></footer>
+<a class="lang" href="zh-hk/" lang="zh-HK">廣東話</a>
+<img class="icon" src="icon-512.png" alt="JUICE app icon" width="128" height="128">
+<div class="word">JUICE<span>.</span></div>
+<h1>The best EV charging app, made for Tesla drivers</h1>
+<p>Every charger, road trips planned on your car's real battery, stops sent to your Tesla, and <span class="chip">Drives</span>, an automatic mileage log.</p>
+<a class="store" href="https://apps.apple.com/app/id6828181531" id="appStore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.09 1.75-.96 2.79 1.02.08 2.05-.52 2.68-1.27z"/></svg>Download on the App Store</a>
+<a class="web" href="app/" id="web">Continue to JUICE on the web →</a>
+<footer><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a><br>Made by Hunter Davis · <a href="mailto:hundavis10@gmail.com">hundavis10@gmail.com</a></footer>
 </main>
 </body>
 </html>
